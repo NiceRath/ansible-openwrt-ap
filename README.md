@@ -19,6 +19,8 @@ uci set system.@system[0].hostname=<HOSTNAME>
 uci commit system
 ```
 
+Also change your root password: `passwd`
+
 ### Ansible Dynamic Inventory
 
 We recommend using the [nmap dynamic inventory](https://docs.ansible.com/ansible/latest/collections/community/general/nmap_inventory.html).
