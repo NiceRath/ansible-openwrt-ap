@@ -43,6 +43,8 @@ This can be especially useful for the initial provisioning of an AP.
 
 ## Config
 
+OpenWRT Docs: [System Config](https://openwrt.org/docs/guide-user/base-system/system_configuration) | [Network config](https://openwrt.org/docs/guide-user/network/network_configuration) | [WLAN config](https://openwrt.org/docs/guide-user/network/wifi/basic) | [OpenWISP-agent configuration](https://openwisp.io/docs/user/configure-device.html#configuration)
+
 See [the defaults](https://github.com/NiceRath/ansible-openwrt-ap/blob/main/defaults/main.yml) for all options.
 
 This config assumes:
@@ -365,6 +367,29 @@ AP# uci show wireless
 ----
 
 ## Troubleshooting
+
+### Useful CLI commands
+
+* Show installed packages: `opkg list-installed`
+* Get Mac-adresses of all connected clients:
+
+  ```
+  for iface in `iw dev | grep Interface | cut -f 2 -s -d" "`; do iw dev $iface station dump | grep Station | cut -f 2 -s -d" ";done
+  ```
+
+* Get connected clients with connection-quality:
+
+  ```
+  for iface in `iw dev | grep Interface | cut -f 2 -s -d" "`; do iw dev $iface station dump | grep -E 'Station|signal|bitrate|expected';done
+  ```
+
+* Check hardware: `cat /proc/cpuinfo` or `ubus call system board`
+* Check release: `cat /etc/openwrt_release`
+* Show running network-config: `cat /etc/config/network`
+* Show unsaved network config: `uci show network`
+* Show running wlan-config: `cat /etc/config/wireless`
+* Show unsaved wlan config: `uci show wireless`
+* Live follow logs: `logread -f`
 
 ### Mac-Address randomized on reboot
 
