@@ -1,0 +1,26 @@
+---
+
+# NOTE: possibly not working correctly
+
+- name: "Mikrotik hAP | {{ ap_name }} | Configure base-device port"
+  ansible.builtin.raw: "uci add_list {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "network.device1.ports='{{ ap_device_net }}'"
+
+- name: "Mikrotik hAP | {{ ap_name }} | VLANs"
+  ansible.builtin.include_tasks: vlan.yml
+  loop_control:
+    loop_var: vlan_cnf
+  loop: "{{ OPENWRT.vlans }}"
+
+- name: "{{ ap_name }} | Remove default devices"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  when: "'network.@device[0].name=' in owrt_run.stdout"
+  loop_control:
+    loop_var: setting
+  loop:
+    - 'network.@device[0]'
+    - 'network.wan6'
+    - 'network.wan'
+  notify: apply-network

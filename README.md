@@ -1,6 +1,6 @@
 # Ansible Role - OpenWRT Access Points
 
-**WARNING**: Make sure to test the role on single Access Points before mass-managing them! There might be hardware-specific special-cases.
+**WARNING**: We do not 
 
 This role utilizes the [OpenWRT UCI command-line interface](https://openwrt.org/docs/guide-user/base-system/uci) to interact with the configuration. This provides a basic validation.
 
@@ -20,6 +20,14 @@ uci commit system
 ```
 
 Also change your root password: `passwd`
+
+### Hardware-Specific handling
+
+**WARNING**: Make sure to test the role on single Access Points before mass-managing them! There might be hardware-specific special-cases to cover!
+
+Check out the example hardware-specific mappings in the [main task file](https://github.com/NiceRath/ansible-openwrt-ap/blob/main/tasks/main.yml#L34).
+
+You might need to add your hardware if it has some special needs.
 
 ### Ansible Dynamic Inventory
 

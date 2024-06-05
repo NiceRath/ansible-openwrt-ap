@@ -33,31 +33,25 @@
 
 - name: Hardware | Mikrotik wAP
   ansible.builtin.include_tasks: 'hw_mikrotik_wap.yml'
+  vars:
+    ap_mac_address: "{{ ap_name | generate_mikrotik_mac_address }}"  # will get randomized on reboot otherwise
+    ap_device_net: 'eth0'
   when: "'MikroTik RouterBOARD wAP' in owrt_hw.stdout"
 
-- name: "{{ ap_name }} | VLANs"
-  ansible.builtin.include_tasks: vlan.yml
-  loop_control:
-    loop_var: vlan_cnf
-  loop: "{{ OPENWRT.vlans }}"
+- name: Hardware | Mikrotik hAP
+  ansible.builtin.include_tasks: 'hw_mikrotik_hap.yml'
+  vars:
+    ap_device_net: 'wan'
+  when: "'MikroTik hAP ac2' in owrt_hw.stdout"
+
+- name: Hardware | Default
+  ansible.builtin.include_tasks: 'hw_default.yml'
+  when:
+    - "'MikroTik RouterBOARD wAP' not in owrt_hw.stdout"
+    - "'MikroTik hAP ac2' not in owrt_hw.stdout"
 
 - name: "{{ ap_name }} | WLANs"
   ansible.builtin.import_tasks: wlans.yml
-
-- name: "{{ ap_name }} | Remove default & legacy devices"
-  ansible.builtin.raw: "uci delete {{ setting }}"
-  loop_control:
-    loop_var: setting
-  loop:
-    - 'network.@device[0]'
-    - 'network.device5'
-    - 'network.device6'
-    - 'network.device7'
-    - 'network.device8'
-    - 'network.switch0_vlan1'
-    - 'network.switch0'
-  when: setting in owrt_run.stdout
-  notify: apply-network
 
 - name: "{{ ap_name }} | Remove default wlans"
   ansible.builtin.raw: "uci delete {{ setting }}"

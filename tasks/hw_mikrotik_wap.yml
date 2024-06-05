@@ -14,3 +14,24 @@
   ansible.builtin.raw: "uci set network.device1.macaddr={{ ap_mac_address }}"
   when: "ap_mac_address not in ap_cur_mac_address.stdout"
   notify: apply-network
+
+- name: "Mikrotik wAP | {{ ap_name }} | Configure base-device port"
+  ansible.builtin.raw: "uci add_list {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "network.device1.ports='{{ ap_device_net }}'"
+
+- name: "Mikrotik wAP | {{ ap_name }} | VLANs"
+  ansible.builtin.include_tasks: vlan.yml
+  loop_control:
+    loop_var: vlan_cnf
+  loop: "{{ OPENWRT.vlans }}"
+
+- name: "{{ ap_name }} | Remove default device"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  loop_control:
+    loop_var: setting
+  loop:
+    - 'network.@device[0]'
+  when: setting in owrt_run.stdout
+  notify: apply-network
