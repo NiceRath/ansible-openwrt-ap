@@ -29,6 +29,7 @@ To use it:
 * Install nmap on your controller: `apt install nmap`
 * Add the line `fact_caching_connection = /tmp/.ansible-${USER}/inventory` to your `ansible.cfg [default]`-section
 * Copy the [template inventory](https://github.com/NiceRath/ansible-openwrt-ap/blob/main/inventory_nmap.yml) and change it for your needs
+* Run: `ansible-playbook -i inventory_nmap.yml -k playbook.yml [--limit <YOUR-AP-IP>]`
 
 ### Ansible Without Inventory
 
