@@ -1,0 +1,70 @@
+---
+
+# uci show network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Checking if network exists"
+  ansible.builtin.set_fact:
+    vlan_dev_exists: "{{ vlan_dev in owrt_run.stdout }}"
+    vlan_net_exists: "{{ vlan_net in owrt_run.stdout }}"
+  vars:
+    vlan_dev: "network.{{ vlan_cnf.device }}."
+    vlan_net: "network.{{ vlan_cnf.interface }}"
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Has network changes"
+  ansible.builtin.debug:
+    msg: 'Yes'
+  changed_when: true
+  when:
+    - ansible_check_mode
+    - not vlan_dev_exists or not vlan_net_exists
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Add VLAN"
+  ansible.builtin.raw: "uci set network.{{ vlan_cnf.device }}=device"
+  when: not vlan_dev_exists
+  notify: apply-network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Configure VLAN"
+  ansible.builtin.raw: "uci {{ item }}"
+  loop:
+    - "set network.{{ vlan_cnf.device }}.name={{ vlan_cnf.bridge }}"
+    - "add_list network.{{ vlan_cnf.device }}.ports={{ ap_device_net }}.{{ vlan_cnf.vid }}"
+  when: not vlan_dev_exists
+  notify: apply-network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Configure VLAN options"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: >
+    not vlan_dev_exists or
+    setting not in owrt_run.stdout
+  vars:
+    setting: "network.{{ vlan_cnf.device }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.vlan_settings.bridge }}"
+  notify: apply-network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Add VLAN Network"
+  ansible.builtin.raw: "uci set network.{{ vlan_cnf.interface }}=interface"
+  when: not vlan_net_exists
+  notify: apply-network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Configure VLAN Network"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: >
+    not vlan_dev_exists or
+    setting not in owrt_run.stdout
+  vars:
+    setting: "network.{{ vlan_cnf.interface }}.device='{{ vlan_cnf.bridge }}'"
+  notify: apply-network
+
+- name: "{{ ap_name }} | VLAN | {{ vlan_cnf.vid }} | Configure VLAN Network"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: >
+    not vlan_dev_exists or
+    setting not in owrt_run.stdout
+  vars:
+    setting: "network.{{ vlan_cnf.interface }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.vlan_settings.network }}"
+  notify: apply-network

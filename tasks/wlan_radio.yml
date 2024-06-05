@@ -1,0 +1,28 @@
+---
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_ghz }}GHz | Add WLAN Device"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_device }}=wifi-device"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_ghz }}GHz | Set default options"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_device }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.radio_settings.all | extend(wlan_ghz_settings) }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_ghz }}GHz | Remove unconfigured options"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  when: setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_device }}.{{ option }}"
+  loop_control:
+    loop_var: option
+  loop: "{{ OPENWRT.radio_settings.remove }}"
+  notify: apply-wlan

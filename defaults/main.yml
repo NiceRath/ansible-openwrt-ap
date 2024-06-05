@@ -1,0 +1,131 @@
+---
+
+ap_device_net: 'eth0'
+ap_device_2g: 'radio1'
+ap_device_5g: 'radio0'
+
+openwrt_defaults:
+  pkg:
+    install: []
+    uninstall: []
+
+  ssh_port: 22
+  daily_reboot: false
+  disable_firewall: true
+
+  system_settings:
+    # see: https://openwrt.org/docs/guide-user/base-system/system_configuration
+    timezone:  # see: https://github.com/openwrt/luci/blob/master/modules/luci-lua-runtime/luasrc/sys/zoneinfo/tzdata.lua
+    zonename:
+    log_proto: 'udp'
+    log_port: 514
+    log_ip:
+
+  openwisp_settings:
+    # see: https://github.com/openwisp/openwisp-config#configuration-options
+    controller: {}  # uci show openwisp
+    monitoring: {}  # uci show openwisp-monitoring
+
+  vlans: []
+  vlan_settings:
+    bridge:
+      ipv6: '0'
+      multicast: '0'
+      sendredirects: '0'
+      bridge_empty: '1'
+      type: 'bridge'
+
+    network:
+      proto: 'none'
+      defaultroute: '0'
+      peerdns: '0'
+      delegate: '0'
+
+  wlans: []
+
+  wlan_settings:
+    ignore:  # all other key/value pairs in 'wlans' will be interpreted as openwrt options
+      - 'wid'
+      - 'state_2g'
+      - 'state_5g'
+      - 'fast_roaming'
+      - 'filter_by_name'
+      - 'filter_by_not_name'
+
+    default:
+      mode: 'ap'
+      disabled: '0'
+      isolate: '1'
+      ft_psk_generate_local: '1'
+      encryption: 'psk2+aes'
+      ieee80211w: '0'
+      max_inactivity: '3600'
+      disassoc_low_ack: '0'
+      wmm: '0'  # is unstable
+      wpa_group_rekey: '3600'
+      wpa_disable_eapol_key_retries: '1'
+      # 802.11.k
+      ieee80211k: '1'
+      rrm_neighbor_report: '1'
+      rrm_beacon_report: '1'
+      # 802.11v
+      ieee80211v: '1'
+      time_advertisement: '2'
+      # time_zone: "{{ owrt_timezone }}"
+      wnm_sleep_mode: '0'
+      bss_transition: '1'
+
+    fast_roaming:
+      ieee80211r: '1'
+      mobility_domain: '1111'
+      reassociation_deadline: '20000'
+      pmk_r1_push: '1'
+
+    remove: []  # remove option if not set on wlan specifically
+
+  radio_settings:
+    remove: []
+
+    all:
+      country: 'AT'
+      country_ie: '1'
+      channel: 'auto'
+      type: 'mac80211'
+      disabled: '0'
+      log_level: '2'
+
+    radio5:
+      band: '5g'
+      htmode: 'VHT40'
+      channels: '100-140'
+      beacon_int: '100'
+      cell_density: '1'
+
+    radio2:
+      band: '2g'
+      htmode: 'HT20'
+      channels: '1 6 11 13'
+      cell_density: '2'
+
+  int_settings:
+    bridge_empty: '1'
+    ipv6: '0'
+    multicast: '0'
+    name: 'br-lan'
+    rpfilter: 'loose'
+    sendredirects: '0'
+    type: 'bridge'
+
+  mgmt_net:
+    default:
+      device: 'br-lan'
+      proto: 'dhcp'
+      delegate: '0'
+      force_link: '1'
+
+    remove:
+      - 'ipaddr'
+      - 'netmask'
+      - 'ip6assign'
+
+OPENWRT: "{{ openwrt_defaults | combine(openwrt, recursive=true) }}"

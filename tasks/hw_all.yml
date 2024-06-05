@@ -1,0 +1,154 @@
+---
+
+- name: "{{ ap_name }} | Get installed packages"
+  ansible.builtin.raw: 'opkg list-installed'
+  changed_when: false
+  check_mode: false
+  register: owrt_pkgs
+  when: >
+    openwrt.pkg.install | length > 0 or
+    openwrt.pkg.uninstall | length > 0
+
+- name: "{{ ap_name }} | Uninstall packages"
+  ansible.builtin.raw: "opkg remove {{ item }}"
+  register: owrt_pkg_rm
+  changed_when: "'No packages removed' not in owrt_pkg_rm.stdout"
+  when: item in owrt_pkgs.stdout
+  loop: "{{ OPENWRT.pkg.uninstall }}"
+
+- name: "{{ ap_name }} | Update package cataloge"
+  ansible.builtin.raw: 'opkg update'
+  when: owrt_pkgs.stdout | any_package_missing(openwrt.pkg.install)
+
+- name: "{{ ap_name }} | Install packages"
+  ansible.builtin.raw: "opkg install {{ item }}"
+  register: owrt_pkg_rm
+  when: item not in owrt_pkgs.stdout
+  loop: "{{ OPENWRT.pkg.install }}"
+
+- name: "{{ ap_name }} | Add reboot cron"
+  ansible.builtin.raw: "echo '30 2 * * * sleep `head /dev/urandom | tr -dc \"0123456789\" |
+  head -c3` && touch /etc/banner && reboot' > /etc/crontabs/root &&
+  service cron restart"
+  changed_when: false
+  when: openwrt.daily_reboot | bool
+
+- name: "{{ ap_name }} | Configure system settings"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - option.value | default(none, true) is not none
+    - setting not in owrt_run.stdout
+  vars:
+    setting: "system.system.{{ option.key }}='{{ option.value }}'"
+  notify: apply-system-config
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.system_settings }}"
+
+- name: "{{ ap_name }} | Disable firewall"
+  ansible.builtin.raw: |
+    /etc/init.d/firewall stop &&
+    service firewall disable
+  register: owrt_fw_dis
+  changed_when: "'not found' not in owrt_fw_dis.stdout"
+  failed_when:
+    - owrt_fw_dis.failed
+    - "'not found' not in owrt_fw_dis.stdout"
+  when: openwrt.disable_firewall | bool
+
+- name: "{{ ap_name }} | Set SSH port"
+  ansible.builtin.raw: "uci set {{ setting }} &&
+  uci commit dropbear &&
+  /etc/init.d/dropbear reload"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "dropbear.dropbear1.Port='{{ OPENWRT.ssh_port }}'"
+
+- name: "{{ ap_name }} | Make sure base-device exists"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: 'network.device1=device'
+  notify: apply-network
+
+- name: "{{ ap_name }} | Configure base-device"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "network.device1.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.int_settings }}"
+  notify:
+    - save-all
+    - save-network
+    - apply-network
+
+- name: "{{ ap_name }} | Configure mgmt-interface"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when: setting not in owrt_run.stdout
+  vars:
+    setting: "network.lan.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.mgmt_net.default }}"
+  notify:
+    - save-all
+    - save-network
+    - apply-network
+
+- name: "{{ ap_name }} | Configure mgmt-interface"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  when: setting in owrt_run.stdout
+  vars:
+    setting: "network.lan.{{ option }}"
+  loop_control:
+    loop_var: option
+  loop: "{{ OPENWRT.mgmt_net.remove }}"
+  notify:
+    - save-all
+    - save-network
+    - apply-network
+
+- name: "{{ ap_name }} | Configure OpenWISP Controller"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - openwisp_settings.controller | length > 0
+    - setting not in owrt_run.stdout
+  vars:
+    setting: 'openwisp.http=controller'
+  notify: apply-openwisp
+
+- name: "{{ ap_name }} | Configure OpenWISP Controller"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - openwisp_settings.controller | length > 0
+    - setting not in owrt_run.stdout
+  vars:
+    setting: "openwisp.http.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.openwisp_settings.controller }}"
+  notify: apply-openwisp
+  no_log: true
+
+- name: "{{ ap_name }} | Configure OpenWISP Monitoring"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - openwisp_settings.monitoring | length > 0
+    - setting not in owrt_run.stdout
+  vars:
+    setting: 'openwisp-monitoring.monitoring=monitoring'
+  notify: apply-openwisp
+
+- name: "{{ ap_name }} | Configure OpenWISP Monitoring"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - openwisp_settings.monitoring | length > 0
+    - setting not in owrt_run.stdout
+  vars:
+    setting: "openwisp-monitoring.monitoring.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.openwisp_settings.monitoring }}"
+  notify: apply-openwisp

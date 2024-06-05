@@ -1,0 +1,61 @@
+---
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | 2.4GHz Radio"
+  ansible.builtin.include_tasks: wlan_radio.yml
+  vars:
+    wlan_ghz: '2.4'
+    wlan_ghz_device: "{{ ap_device_2g }}"
+    wlan_ghz_settings: "{{ OPENWRT.radio_settings.radio2 }}"
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | 5GHz Radio"
+  ansible.builtin.include_tasks: wlan_radio.yml
+  vars:
+    wlan_ghz: '5'
+    wlan_ghz_device: "{{ ap_device_5g }}"
+    wlan_ghz_settings: "{{ OPENWRT.radio_settings.radio5 }}"
+
+- name: "{{ ap_name }} | WLAN"
+  ansible.builtin.include_tasks: wlan_add.yml
+  when: >
+    (wlan_cnf.filter_by_name | default(none, true) is none or
+    ap_name | filter_ap_by_name(wlan_cnf.filter_by_name)) and
+    (wlan_cnf.filter_by_not_name | default(none, true) is none or
+    not ap_name | filter_ap_by_name(wlan_cnf.filter_by_not_name))
+  loop_control:
+    loop_var: wlan_cnf
+  loop: "{{ OPENWRT.wlans }}"
+
+- name: "{{ ap_name }} | WLAN | Remove filtered"
+  ansible.builtin.include_tasks: wlan_rm.yml
+  when: >
+    (wlan_cnf.filter_by_name | default(none, true) is not none and
+    not ap_name | filter_ap_by_name(wlan_cnf.filter_by_name)) or
+    (wlan_cnf.filter_by_not_name | default(none, true) is not none and
+    ap_name | filter_ap_by_name(wlan_cnf.filter_by_not_name))
+  loop_control:
+    loop_var: wlan_cnf
+  loop: "{{ OPENWRT.wlans }}"
+
+- name: "{{ ap_name }} | WLAN | Remove disabled 2.4GHz"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  when:
+    - wlan_cnf.state_2g | default('present', true) != 'present'
+    - setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_cnf.wid }}2"
+  loop_control:
+    loop_var: wlan_cnf
+  loop: "{{ OPENWRT.wlans }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | Remove disabled 5GHz"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  when:
+    - wlan_cnf.state_5g | default('present', true) != 'present'
+    - setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_cnf.wid }}5"
+  loop_control:
+    loop_var: wlan_cnf
+  loop: "{{ OPENWRT.wlans }}"
+  notify: apply-wlan

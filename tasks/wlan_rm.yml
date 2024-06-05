@@ -1,0 +1,23 @@
+---
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | Remove 2.4GHz"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  register: wlan_ssid_rm
+  failed_when:
+    - wlan_ssid_rm.failed
+    - "'Entry not found' not in wlan_ssid_rm.stdout"
+  when: setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_cnf.wid }}2"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | Remove 5GHz"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  register: wlan_ssid_rm
+  failed_when:
+    - wlan_ssid_rm.failed
+    - "'Entry not found' not in wlan_ssid_rm.stdout"
+  when: setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_cnf.wid }}5"
+  notify: apply-wlan

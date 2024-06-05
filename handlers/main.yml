@@ -1,0 +1,30 @@
+---
+
+- name: save-all
+  ansible.builtin.raw: 'uci commit'
+
+- name: apply-system-config
+  ansible.builtin.raw: 'uci commit system'
+
+- name: apply-openwisp
+  ansible.builtin.raw: |
+    uci commit openwisp &&
+    service openwisp-monitoring restart &&
+    service openwisp_config restart
+
+- name: perform-reboot
+  ansible.builtin.raw: 'reboot'
+
+- name: save-network
+  ansible.builtin.raw: 'uci commit network'
+
+- name: apply-wlan
+  ansible.builtin.raw: |
+    uci commit wireless &&
+    wifi down &&
+    wifi up
+
+- name: apply-network
+  ansible.builtin.raw: |
+    uci commit network &&
+    /etc/init.d/network restart

@@ -1,0 +1,16 @@
+---
+
+# see: https://forum.openwrt.org/t/mac-address-changing-automatically-why/122037
+- name: "Mikrotik wAP | {{ ap_name }} | Get mac-address"
+  ansible.builtin.raw: "uci get network.device1.macaddr"
+  register: ap_cur_mac_address
+  check_mode: false
+  changed_when: false
+  failed_when:
+    - ap_cur_mac_address.failed
+    - "'Entry not found' not in ap_cur_mac_address.stdout"
+
+- name: "Mikrotik wAP | {{ ap_name }} | Set mac-address {{ ap_mac_address }}"
+  ansible.builtin.raw: "uci set network.device1.macaddr={{ ap_mac_address }}"
+  when: "ap_mac_address not in ap_cur_mac_address.stdout"
+  notify: apply-network

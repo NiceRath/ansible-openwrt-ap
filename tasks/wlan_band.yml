@@ -1,0 +1,81 @@
+---
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Add WLAN"
+  ansible.builtin.raw: "uci set {{ wlan_dev }}=wifi-iface"
+  when: wlan_dev not in owrt_run.stdout
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Set device"
+  ansible.builtin.raw: "uci set {{ wlan_dev }}.device={{ wlan_ghz_device }}"
+  when: wlan_dev not in owrt_run.stdout
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Set unconfigured options to default"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  register: wlan_opt_rm
+  changed_when: "'Entry not found' not in wlan_opt_rm.stdout"
+  failed_when:
+    - wlan_opt_rm.failed
+    - "'Entry not found' not in wlan_opt_rm.stdout"
+  when:
+    - option not in wlan_cnf
+    - setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_key }}.{{ option }}"
+  loop_control:
+    loop_var: option
+  loop: "{{ OPENWRT.wlan_settings.remove }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Set default options"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - setting not in owrt_run.stdout
+    - option.key not in wlan_cnf
+  vars:
+    setting: "wireless.{{ wlan_ghz_key }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.wlan_settings.default }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Set specific options"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - option.key not in openwrt.wlan_settings.ignore
+    - setting not in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_key }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ wlan_cnf }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Set fast-roaming options"
+  ansible.builtin.raw: "uci set {{ setting }}"
+  when:
+    - wlan_cnf.fast_roaming | default(false)
+    - setting not in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_key }}.{{ option.key }}='{{ option.value }}'"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.wlan_settings.fast_roaming }}"
+  notify: apply-wlan
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | {{ wlan_ghz }}GHz | Remove fast-roaming options"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  register: wlan_opt_rm
+  changed_when: "'Entry not found' not in wlan_opt_rm.stdout"
+  failed_when:
+    - wlan_opt_rm.failed
+    - "'Entry not found' not in wlan_opt_rm.stdout"
+  when:
+    - not wlan_cnf.fast_roaming | default(false)
+    - setting in owrt_run.stdout
+  vars:
+    setting: "wireless.{{ wlan_ghz_key }}.{{ option.key }}"
+  loop_control:
+    loop_var: option
+  with_dict: "{{ OPENWRT.wlan_settings.fast_roaming }}"
+  notify: apply-wlan

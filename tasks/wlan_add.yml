@@ -1,0 +1,21 @@
+---
+
+# uci show wireless
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | 2.4GHz"
+  ansible.builtin.include_tasks: wlan_band.yml
+  when: wlan_cnf.state_2g | default('present', true) == 'present'
+  vars:
+    wlan_ghz: '2.4'
+    wlan_ghz_key: "{{ wlan_cnf.wid }}2"
+    wlan_ghz_device: "{{ ap_device_2g }}"
+    wlan_dev: "wireless.{{ wlan_ghz_key }}"
+
+- name: "{{ ap_name }} | WLAN | {{ wlan_cnf.ssid }} | 5GHz"
+  ansible.builtin.include_tasks: wlan_band.yml
+  when: wlan_cnf.state_5g | default('present', true) == 'present'
+  vars:
+    wlan_ghz: '5'
+    wlan_ghz_key: "{{ wlan_cnf.wid }}5"
+    wlan_ghz_device: "{{ ap_device_5g }}"
+    wlan_dev: "wireless.{{ wlan_ghz_key }}"

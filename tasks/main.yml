@@ -1,0 +1,70 @@
+---
+
+# see for uci commands: https://openwrt.org/docs/guide-user/base-system/uci
+
+# if it fails: you need to set the hostname first
+#   uci set system.system=system
+#   uci set system.system.hostname=<LOCATION-NR>-AP<NR>
+#   uci set system.@system[0].hostname==<LOCATION-NR>-AP<NR>
+- name: Get hostname
+  ansible.builtin.raw: 'uci get system.system.hostname'
+  changed_when: false
+  check_mode: false
+  register: owrt_cnf_hostname
+
+- name: Parse hostname
+  ansible.builtin.set_fact:
+    ap_name: "{{ owrt_cnf_hostname.stdout_lines[0] }}"
+
+- name: Get hardware
+  ansible.builtin.raw: 'ubus call system board'
+  changed_when: false
+  check_mode: false
+  register: owrt_hw
+
+- name: Get running config
+  ansible.builtin.raw: 'uci show'
+  changed_when: false
+  check_mode: false
+  register: owrt_run
+
+- name: Hardware | All
+  ansible.builtin.import_tasks: 'hw_all.yml'
+
+- name: Hardware | Mikrotik wAP
+  ansible.builtin.include_tasks: 'hw_mikrotik_wap.yml'
+  when: "'MikroTik RouterBOARD wAP' in owrt_hw.stdout"
+
+- name: "{{ ap_name }} | VLANs"
+  ansible.builtin.include_tasks: vlan.yml
+  loop_control:
+    loop_var: vlan_cnf
+  loop: "{{ OPENWRT.vlans }}"
+
+- name: "{{ ap_name }} | WLANs"
+  ansible.builtin.import_tasks: wlans.yml
+
+- name: "{{ ap_name }} | Remove default & legacy devices"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  loop_control:
+    loop_var: setting
+  loop:
+    - 'network.@device[0]'
+    - 'network.device5'
+    - 'network.device6'
+    - 'network.device7'
+    - 'network.device8'
+    - 'network.switch0_vlan1'
+    - 'network.switch0'
+  when: setting in owrt_run.stdout
+  notify: apply-network
+
+- name: "{{ ap_name }} | Remove default wlans"
+  ansible.builtin.raw: "uci delete {{ setting }}"
+  loop_control:
+    loop_var: setting
+  loop:
+    - 'wireless.default_radio0'
+    - 'wireless.default_radio1'
+  when: setting in owrt_run.stdout
+  notify: apply-wlan
