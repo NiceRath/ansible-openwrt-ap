@@ -19,6 +19,23 @@ uci set system.@system[0].hostname=<HOSTNAME>
 uci commit system
 ```
 
+### Ansible Dynamic Inventory
+
+We recommend using the [nmap dynamic inventory](https://docs.ansible.com/ansible/latest/collections/community/general/nmap_inventory.html).
+
+To use it:
+
+* Install the Ansible collection: `ansible-galaxy install -r requirements.yml`
+* Install nmap on your controller: `apt install nmap`
+* Add the line `fact_caching_connection = /tmp/.ansible-${USER}/inventory` to your `ansible.cfg [default]`-section
+* Copy the [template inventory](https://github.com/NiceRath/ansible-openwrt-ap/blob/main/inventory_nmap.yml) and change it for your needs
+
+### Ansible Without Inventory
+
+You can manually run the playbook/role like this: `ansible-playbook -i inventory_setup.yml -k playbook.yml -e ansible_host=<YOUR-AP-IP>`
+
+This can be especially useful for the initial provisioning of an AP.
+
 ----
 
 ## Config

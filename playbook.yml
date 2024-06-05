@@ -1,0 +1,15 @@
+---
+
+- name: Manage OpenWRT APs
+  hosts: openwrt
+  become: false
+  gather_facts: false
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    ansible_user: 'root'
+
+    openwrt:
+      ...
+
+  roles:
+    - nice.openwrt

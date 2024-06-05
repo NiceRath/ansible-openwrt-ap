@@ -1,0 +1,15 @@
+---
+
+# change the port 9822 to your custom ssh port
+
+plugin: community.general.nmap
+address: 192.168.20.0/24
+exclude: 192.168.20.1
+port: 443, 9822
+ipv4: true
+ipv6: false
+cache: true
+cache_plugin: jsonfile
+cache_timeout: 3600
+groups:
+  openwrt: "ports | selectattr('port', 'equalto', '9822')"
