@@ -16,11 +16,10 @@
 
 - name: "{{ ap_name }} | Remove default devices"
   ansible.builtin.raw: "uci delete {{ setting }}"
-  when: "'network.@device[0].name=' in owrt_run.stdout"
+  when: setting in owrt_run.stdout
   loop_control:
     loop_var: setting
   loop:
-    - 'network.@device[0]'
     - 'network.wan6'
     - 'network.wan'
   notify: apply-network

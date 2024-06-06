@@ -41,8 +41,10 @@
 - name: Hardware | Mikrotik hAP
   ansible.builtin.include_tasks: 'hw_mikrotik_hap.yml'
   vars:
-    ap_device_net: 'wan'
-  when: "'MikroTik hAP ac2' in owrt_hw.stdout"
+    ap_device_net: 'eth1'
+  when:
+    - "'MikroTik hAP ac2' in owrt_hw.stdout"
+    - "'OpenWrt 23' not in owrt_hw.stdout"
 
 - name: Hardware | Default
   ansible.builtin.include_tasks: 'hw_default.yml'
