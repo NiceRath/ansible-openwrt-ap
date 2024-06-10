@@ -414,3 +414,9 @@ Per example - use the unique hostname digits in it: [filter-plugin](https://gith
 This might happen if the existing configuration is not compatible with the one set by this command.
 
 To debug this behavior you can manually execute the `uci` command or manually remove legacy config.
+
+----
+
+## Other Notes
+
+* [OpenWRT Firmware Selector/Download](https://firmware-selector.openwrt.org/)
